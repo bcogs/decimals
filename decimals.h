@@ -8,7 +8,7 @@
 
 namespace decimals {
 
-enum Sign { POSITIVE, NEGATIVE };
+enum sign { POSITIVE, NEGATIVE };
 
 // decimal is a floating-point number using powers of 10 instead of powers of 2.
 // Behaves like a double: + -= < etc are provided, and nans/inf too.
@@ -41,9 +41,9 @@ class decimal {
 
   static decimal nan();  // quiet NaN
 
-  static decimal inf(Sign s = POSITIVE);  // infinity
+  static decimal inf(sign s = POSITIVE);  // infinity
 
-  static decimal zero(Sign s = POSITIVE);  // zero
+  static decimal zero(sign s = POSITIVE);  // zero
 
   static decimal from_double(double d);  // same as decimal(double d)
 
