@@ -2,7 +2,10 @@
 
 The decimals C++ library provides a `decimal` class usable like a `double`, and, when reading a string of decimal digits, can be converted back to a string with the exact same digits.
 
-Conversion from `double` to `decimal` isn't lossy, but conversion from decimal to double is, as `decimal` has more bits than double.
+Conversions:
+- Conversion from `double` to `decimal` is exact, but the other way rounds to the nearest double.
+- Conversion from `int64_t` to `decimal` is exact, and the other way is exact too if the `decimal` is within the range of numbers representable by `int64_t`.
+- Conversion from `uint64_t` to decimal is exact up to `max_exact_uint64` (10^19 - 1) and the other way is exact if the `decimal` is positive and within the range of numbers reprentable by `uint64_t`.
 
 All comparison and arithmetic operations follow IEEE 754 semantics for NaN and infinity (e.g. NaN != NaN, NaN unordered with everything, inf - inf = NaN, 0/0 = NaN, nonzero/0 = +/-inf, etc.).
 
