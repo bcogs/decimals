@@ -351,11 +351,6 @@ static decimal make_with_fields(sign s, int64_t exponent, uint64_t mantissa) {
 // decimal public methods
 // ---------------------------------------------------------------------------
 
-decimal::decimal() {
-  x[0] = 0;
-  x[1] = 0;
-}
-
 decimal::decimal(double d) { *this = from_double(d); }
 
 decimal::decimal(int64_t v) {
@@ -630,7 +625,7 @@ decimal decimal::from_string(const char* str, const char** endptr) {
     double val = std::strtod(p, &strtod_end);
     if (strtod_end == p) {
       if (endptr) *endptr = orig;
-      return decimal();
+      return decimal::zero();
     }
     if (endptr) *endptr = strtod_end;
     decimal result = from_double(val);
@@ -678,7 +673,7 @@ decimal decimal::from_string(const char* str, const char** endptr) {
 
   if (!seen_digit) {
     if (endptr) *endptr = orig;
-    return decimal();
+    return decimal::zero();
   }
 
   before_e = p;

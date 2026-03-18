@@ -16,24 +16,25 @@ enum sign { POSITIVE, NEGATIVE };
 // A round-trip conversion from decimal to string and back yields the same value
 // (modulo leading 0s, and trailing zeros or dot).
 //
-// Conversion from double to decimal isn't lossy, but conversion from decimal to
-// double is.
+// Conversion from double and int64 to decimal isn't lossy (all values fit
+// in 19 significant digits), but conversion from decimal to double and int64
+// is.  Conversion from uint64 to decimal is exact for values in
+// [0, max_exact_uint64] (10^19 - 1).
 //
 // All comparison and arithmetic operations follow IEEE 754 semantics for NaN
 // and infinity (e.g. NaN != NaN, NaN unordered with everything,
 // inf - inf = NaN, 0/0 = NaN, nonzero/0 = +/-inf, etc.).
 class decimal {
  public:
-  // Constructs positive zero.
-  decimal();
+  // Default construction leaves the value uninitialized, like double.
+  decimal() = default;
 
   // Constructs a decimal from a double, preserving the exact decimal
   // representation that printf("%.17g") would produce.
   explicit decimal(double d);
 
-  // Constructs a decimal from an integer.  The conversion is exact for any
-  // value that fits in 19 significant decimal digits (all int32/uint32 values,
-  // and all int64/uint64 values up to about +/-9.2e18).
+  // Constructs a decimal from an integer.  The conversion is exact for all
+  // int64 values and for uint64 values up to max_exact_uint64.
   explicit decimal(int64_t v);
   explicit decimal(uint64_t v);
 
@@ -109,7 +110,7 @@ class decimal {
   // Uses plain decimal when compact (e.g. "123.456", "0.001"), scientific
   // notation otherwise (e.g. "1.23e100").
   // NaN produces "nan", infinities produce "inf" or "-inf".
-  std::string to_string() const;
+  std::string to_string() const; // XXX should have a char* version
 
   // --- Arithmetic (NaN/inf follow IEEE 754 semantics) ------------------------
 
@@ -156,6 +157,10 @@ class decimal {
   // Maximum number of characters to_string() can produce, not counting '\0'.
   // Can be used to size a buffer: char buf[decimal::max_string_length + 1].
   static constexpr int max_string_length = 42;
+
+  // Largest uint64_t that converts to decimal without rounding (10^19 - 1).
+  // All int64_t values (up to 19 digits) are always exact.
+  static constexpr uint64_t max_exact_uint64 = 9999999999999999999ULL;
 
  protected:
   uint64_t x[2];

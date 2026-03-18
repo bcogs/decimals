@@ -36,16 +36,6 @@ static constexpr double dinf = std::numeric_limits<double>::infinity();
 // Construction & queries
 // ---------------------------------------------------------------------------
 
-Test(construction, default_is_zero) {
-  decimal d;
-  cr_assert(d.is_zero());
-  cr_assert(!d.is_nan());
-  cr_assert(!d.is_inf());
-  cr_assert(d.is_finite());
-  cr_assert(!d.is_negative());
-  cr_assert_eq(d.mantissa(), 0u);
-}
-
 Test(construction, nan_value) {
   decimal d = decimal::nan();
   cr_assert(d.is_nan());
@@ -149,7 +139,7 @@ Test(construction, from_uint64_large) {
   decimal d(UINT64_MAX);
   cr_assert(!d.is_negative());
   cr_assert(!d.is_zero());
-  // UINT64_MAX = 18446744073709551615, which has 20 digits → rounded to 19.
+  // UINT64_MAX = 18446744073709551615 (20 digits — rounded to 19).
   cr_assert(d.mantissa() >= 1000000000000000000ULL);
   cr_assert(d.mantissa() < 10000000000000000000ULL);
 }
@@ -173,6 +163,29 @@ Test(construction, from_int_roundtrip) {
     double back = d.to_double();
     cr_assert_eq(back, static_cast<double>(v),
                  "int roundtrip failed for %d", v);
+  }
+}
+
+Test(construction, int64_roundtrip) {
+  // All int64 values are representable exactly (at most 19 digits).
+  int64_t vals[] = {0, 1, -1, INT64_MAX, INT64_MIN,
+                    INT64_MAX - 1, INT64_MIN + 1};
+  for (int64_t v : vals) {
+    decimal d(v);
+    int64_t back = static_cast<int64_t>(d);
+    cr_assert_eq(back, v, "int64 roundtrip failed for %ld", v);
+  }
+}
+
+Test(construction, uint64_roundtrip) {
+  // uint64 values up to max_exact_uint64 are representable exactly.
+  uint64_t vals[] = {0, 1, decimal::max_exact_uint64,
+                     decimal::max_exact_uint64 - 1,
+                     static_cast<uint64_t>(INT64_MAX) + 1};
+  for (uint64_t v : vals) {
+    decimal d(v);
+    uint64_t back = static_cast<uint64_t>(d);
+    cr_assert_eq(back, v, "uint64 roundtrip failed for %lu", v);
   }
 }
 
@@ -1221,7 +1234,7 @@ Test(double_conv, small_double) {
 static void check_matches_double_binop(double a, double b, const char* op) {
   decimal da(a), db(b);
   double dr;
-  decimal result;
+  decimal result = decimal::zero();
 
   if (std::strcmp(op, "+") == 0) {
     dr = a + b;
@@ -1625,8 +1638,6 @@ Test(to_string, scientific_roundtrip) {
 // ---------------------------------------------------------------------------
 
 Test(operator_bool, zero_is_false) {
-  decimal d;
-  cr_assert(!static_cast<bool>(d));
   cr_assert(!static_cast<bool>(decimal::zero()));
   cr_assert(!static_cast<bool>(decimal::zero(NEGATIVE)));
   // double: (bool)0.0 == false, (bool)(-0.0) == false
@@ -1655,9 +1666,9 @@ Test(operator_bool, inf_is_true) {
 
 Test(operator_bool, if_and_not) {
   decimal nonzero = decimal::from_string("42");
-  decimal zero;
+  decimal z = decimal::zero();
   if (nonzero) {} else { cr_assert_fail("nonzero should be truthy"); }
-  if (!zero) {} else { cr_assert_fail("zero should be falsy"); }
+  if (!z) {} else { cr_assert_fail("zero should be falsy"); }
 }
 
 // ---------------------------------------------------------------------------
