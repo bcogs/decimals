@@ -2,13 +2,13 @@
 #define DECIMALS_H__
 
 #include <cstdint>
+#include <iosfwd>
 #include <limits>
 #include <string>
-#include <iosfwd>
 
 namespace decimals {
 
-enum sign { POSITIVE, NEGATIVE };
+enum sign : uint64_t { POSITIVE = 0, NEGATIVE = ((uint64_t)1) << 63 };
 
 // decimal is a floating-point number using powers of 10 instead of powers of 2.
 // Behaves like a double: + -= < etc are provided, and nans/inf too.
@@ -87,9 +87,10 @@ class decimal {
 
   bool is_nan() const;
   bool is_inf() const;
-  bool is_zero() const;
-  bool is_finite() const;
-  bool is_negative() const;
+  bool is_zero() const;     // false for NaN
+  bool is_finite() const;   // false for NaN and inf
+  bool is_negative() const; // like std::signbit: reports the sign bit, even for NaN
+  bool is_special() const;  // true iff NaN or infinity
 
   // --- Conversions -----------------------------------------------------------
 
@@ -110,10 +111,15 @@ class decimal {
   // Uses plain decimal when compact (e.g. "123.456", "0.001"), scientific
   // notation otherwise (e.g. "1.23e100").
   // NaN produces "nan", infinities produce "inf" or "-inf".
-  std::string to_string() const; // XXX should have a char* version
+  std::string to_string() const;
+
+  // Writes the decimal string into buf (which must hold at least
+  // max_string_length + 1 bytes) and null-terminates it.  Returns buf.
+  char* to_string(char* buf) const;
 
   // --- Arithmetic (NaN/inf follow IEEE 754 semantics) ------------------------
 
+  decimal& flip_sign();      // flips the sign bit in place
   decimal operator-() const;
   decimal operator+(const decimal& rhs) const;
   decimal operator-(const decimal& rhs) const;
@@ -156,11 +162,11 @@ class decimal {
 
   // Maximum number of characters to_string() can produce, not counting '\0'.
   // Can be used to size a buffer: char buf[decimal::max_string_length + 1].
-  static constexpr int max_string_length = 42;
+  static constexpr size_t max_string_length = 42;
 
   // Largest uint64_t that converts to decimal without rounding (10^19 - 1).
   // All int64_t values (up to 19 digits) are always exact.
-  static constexpr uint64_t max_exact_uint64 = 9999999999999999999ULL;
+  static constexpr uint64_t max_exact_uint64 = (uint64_t)9999999999999999999ULL;
 
  protected:
   uint64_t x[2];
