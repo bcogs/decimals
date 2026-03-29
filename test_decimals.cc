@@ -32,6 +32,14 @@ static bool same_double(double a, double b) {
 static constexpr double dnan = std::numeric_limits<double>::quiet_NaN();
 static constexpr double dinf = std::numeric_limits<double>::infinity();
 
+// Criterion's cr_assert_str_eq stores .c_str() in a local variable, so the
+// temporary std::string from .to_string() is dead before strcmp runs.  This
+// macro keeps the string alive through the comparison.
+#define ASSERT_TOSTR_EQ(expr, expected) do {           \
+  std::string _ts = (expr).to_string();                \
+  cr_assert_str_eq(_ts.c_str(), expected);             \
+} while (0)
+
 // ---------------------------------------------------------------------------
 // Construction & queries
 // ---------------------------------------------------------------------------
@@ -92,24 +100,24 @@ Test(construction, from_double_positive) {
   cr_assert(!d.is_zero());
   cr_assert(!d.is_nan());
   cr_assert(!d.is_inf());
-  cr_assert_str_eq(d.to_string().c_str(), "1.5");
+  ASSERT_TOSTR_EQ(d, "1.5");
 }
 
 Test(construction, from_double_negative) {
   decimal d(-42.0);
   cr_assert(d.is_negative());
-  cr_assert_str_eq(d.to_string().c_str(), "-42");
+  ASSERT_TOSTR_EQ(d, "-42");
 }
 
 Test(construction, from_int64_positive) {
   decimal d(static_cast<int64_t>(42));
-  cr_assert_str_eq(d.to_string().c_str(), "42");
+  ASSERT_TOSTR_EQ(d, "42");
   cr_assert(!d.is_negative());
 }
 
 Test(construction, from_int64_negative) {
   decimal d(static_cast<int64_t>(-42));
-  cr_assert_str_eq(d.to_string().c_str(), "-42");
+  ASSERT_TOSTR_EQ(d, "-42");
   cr_assert(d.is_negative());
 }
 
@@ -266,32 +274,32 @@ Test(accessors, mantissa_always_19_digits) {
 
 Test(from_string, integer) {
   decimal d = decimal::from_string("12345");
-  cr_assert_str_eq(d.to_string().c_str(), "12345");
+  ASSERT_TOSTR_EQ(d, "12345");
 }
 
 Test(from_string, decimal) {
   decimal d = decimal::from_string("123.456");
-  cr_assert_str_eq(d.to_string().c_str(), "123.456");
+  ASSERT_TOSTR_EQ(d, "123.456");
 }
 
 Test(from_string, leading_zeros) {
   decimal d = decimal::from_string("007.5");
-  cr_assert_str_eq(d.to_string().c_str(), "7.5");
+  ASSERT_TOSTR_EQ(d, "7.5");
 }
 
 Test(from_string, leading_dot) {
   decimal d = decimal::from_string(".25");
-  cr_assert_str_eq(d.to_string().c_str(), "0.25");
+  ASSERT_TOSTR_EQ(d, "0.25");
 }
 
 Test(from_string, trailing_dot) {
   decimal d = decimal::from_string("42.");
-  cr_assert_str_eq(d.to_string().c_str(), "42");
+  ASSERT_TOSTR_EQ(d, "42");
 }
 
 Test(from_string, zero_point_something) {
   decimal d = decimal::from_string("0.001");
-  cr_assert_str_eq(d.to_string().c_str(), "0.001");
+  ASSERT_TOSTR_EQ(d, "0.001");
 }
 
 Test(from_string, scientific_positive_exp) {
@@ -302,7 +310,7 @@ Test(from_string, scientific_positive_exp) {
 
 Test(from_string, scientific_negative_exp) {
   decimal d = decimal::from_string("5.6e-3");
-  cr_assert_str_eq(d.to_string().c_str(), "0.0056");
+  ASSERT_TOSTR_EQ(d, "0.0056");
 }
 
 Test(from_string, scientific_uppercase) {
@@ -313,7 +321,7 @@ Test(from_string, scientific_uppercase) {
 
 Test(from_string, scientific_positive_sign) {
   decimal d = decimal::from_string("3.14e+2");
-  cr_assert_str_eq(d.to_string().c_str(), "314");
+  ASSERT_TOSTR_EQ(d, "314");
 }
 
 Test(from_string, nan_lower) {
@@ -355,12 +363,12 @@ Test(from_string, infinity_upper) {
 
 Test(from_string, leading_whitespace) {
   decimal d = decimal::from_string("  \t 42");
-  cr_assert_str_eq(d.to_string().c_str(), "42");
+  ASSERT_TOSTR_EQ(d, "42");
 }
 
 Test(from_string, positive_sign) {
   decimal d = decimal::from_string("+99");
-  cr_assert_str_eq(d.to_string().c_str(), "99");
+  ASSERT_TOSTR_EQ(d, "99");
   cr_assert(!d.is_negative());
 }
 
@@ -380,28 +388,28 @@ Test(from_string, no_digits) {
 Test(from_string, trailing_garbage) {
   const char* end = nullptr;
   decimal d = decimal::from_string("123abc", &end);
-  cr_assert_str_eq(d.to_string().c_str(), "123");
+  ASSERT_TOSTR_EQ(d, "123");
   cr_assert_str_eq(end, "abc");
 }
 
 Test(from_string, e_no_digits_after) {
   const char* end = nullptr;
   decimal d = decimal::from_string("5e", &end);
-  cr_assert_str_eq(d.to_string().c_str(), "5");
+  ASSERT_TOSTR_EQ(d, "5");
   cr_assert_str_eq(end, "e");
 }
 
 Test(from_string, e_no_digits_after_sign) {
   const char* end = nullptr;
   decimal d = decimal::from_string("5e+", &end);
-  cr_assert_str_eq(d.to_string().c_str(), "5");
+  ASSERT_TOSTR_EQ(d, "5");
   cr_assert_str_eq(end, "e+");
 }
 
 Test(from_string, just_zero) {
   decimal d = decimal::from_string("0");
   cr_assert(d.is_zero());
-  cr_assert_str_eq(d.to_string().c_str(), "0");
+  ASSERT_TOSTR_EQ(d, "0");
 }
 
 Test(from_string, negative_zero) {
@@ -412,7 +420,7 @@ Test(from_string, negative_zero) {
 
 Test(from_string, multiple_leading_zeros) {
   decimal d = decimal::from_string("0000.0001");
-  cr_assert_str_eq(d.to_string().c_str(), "0.0001");
+  ASSERT_TOSTR_EQ(d, "0.0001");
 }
 
 Test(from_string, huge_exponent_overflow) {
@@ -436,15 +444,13 @@ Test(from_string, many_significant_digits) {
 // The '0' at position 20 should be dropped (no round-up), and the '.5' should NOT
 // be re-accumulated into the mantissa.  Expected: 12345678901234567890.
 Test(from_string, dot_transition_preserves_dropping_state) {
-  cr_assert_str_eq(decimal::from_string("12345678901234567890.5").to_string().c_str(),
-                   "12345678901234567890");
+  ASSERT_TOSTR_EQ(decimal::from_string("12345678901234567890.5"), "12345678901234567890");
 }
 
 // Same bug, different rounding: the 20th digit '5' should round up the mantissa,
 // and the post-dot digits should be ignored (already dropping).
 Test(from_string, dot_transition_dropping_with_round_up) {
-  cr_assert_str_eq(decimal::from_string("12345678901234567895.9").to_string().c_str(),
-                   "12345678901234567900");
+  ASSERT_TOSTR_EQ(decimal::from_string("12345678901234567895.9"), "12345678901234567900");
 }
 
 // Extra digits both before and after the dot while dropping.
@@ -455,18 +461,15 @@ Test(from_string, dot_transition_dropping_many_extra) {
 
 // Exactly 19 significant digits — no rounding, exact roundtrip.
 Test(from_string, nineteen_sig_digits_integer) {
-  cr_assert_str_eq(decimal::from_string("1234567890123456789").to_string().c_str(),
-                   "1234567890123456789");
+  ASSERT_TOSTR_EQ(decimal::from_string("1234567890123456789"), "1234567890123456789");
 }
 
 Test(from_string, nineteen_nines) {
-  cr_assert_str_eq(decimal::from_string("9999999999999999999").to_string().c_str(),
-                   "9999999999999999999");
+  ASSERT_TOSTR_EQ(decimal::from_string("9999999999999999999"), "9999999999999999999");
 }
 
 Test(from_string, nineteen_sig_digits_fraction) {
-  cr_assert_str_eq(decimal::from_string("0.1234567890123456789").to_string().c_str(),
-                   "0.1234567890123456789");
+  ASSERT_TOSTR_EQ(decimal::from_string("0.1234567890123456789"), "0.1234567890123456789");
 }
 
 // Regression: mant_digits was a local variable in parse_mantissa, so it reset
@@ -478,39 +481,35 @@ Test(from_string, mant_digits_spans_dot) {
   // Only the first 19 should be kept; the 20th digit ('0') rounds down.
   // Expected 19-digit mantissa: 1234567890123456789, with 10 digits after dot
   // → "1234567890.123456789"
-  cr_assert_str_eq(decimal::from_string("1234567890.1234567890000000000").to_string().c_str(),
-                   "1234567890.123456789");
+  ASSERT_TOSTR_EQ(decimal::from_string("1234567890.1234567890000000000"), "1234567890.123456789");
   // Same idea: 5 before dot + 20 after.  20th significant digit is '5' → round up.
-  cr_assert_str_eq(decimal::from_string("12345.67890123456789050000").to_string().c_str(),
-                   "12345.67890123456789");
+  ASSERT_TOSTR_EQ(decimal::from_string("12345.67890123456789050000"), "12345.67890123456789");
 }
 
 // 20 significant digits — the 20th digit drives rounding.
 // first_dropped='0' → round down; the value is stored as 9999999999999999999e1.
 Test(from_string, round_down_at_twentieth_digit) {
-  cr_assert_str_eq(decimal::from_string("99999999999999999990").to_string().c_str(),
-                   "99999999999999999990");
+  ASSERT_TOSTR_EQ(decimal::from_string("99999999999999999990"), "99999999999999999990");
 }
 
 // first_dropped='9' → round up 9999999999999999999 → 10^19; make() renormalises
 // to m=10^18, exp adjusted +1, giving 1e20 in scientific notation.
 Test(from_string, round_up_at_twentieth_digit) {
-  cr_assert_str_eq(decimal::from_string("99999999999999999999").to_string().c_str(),
-                   "1e20");
+  ASSERT_TOSTR_EQ(decimal::from_string("99999999999999999999"), "1e20");
 }
 
 // Negative values with decimal points — not covered in the from_string suite.
 Test(from_string, negative_with_decimal) {
-  cr_assert_str_eq(decimal::from_string("-123.456").to_string().c_str(), "-123.456");
+  ASSERT_TOSTR_EQ(decimal::from_string("-123.456"), "-123.456");
 }
 
 Test(from_string, negative_scientific_negative_exp) {
-  cr_assert_str_eq(decimal::from_string("-1.23e-5").to_string().c_str(), "-0.0000123");
+  ASSERT_TOSTR_EQ(decimal::from_string("-1.23e-5"), "-0.0000123");
 }
 
 // '+' sign prefix with a fractional value (only "+integer" was tested before).
 Test(from_string, positive_sign_with_decimal) {
-  cr_assert_str_eq(decimal::from_string("+1.5").to_string().c_str(), "1.5");
+  ASSERT_TOSTR_EQ(decimal::from_string("+1.5"), "1.5");
 }
 
 // Roundtrip for values near the plain/scientific threshold (positive and negative).
@@ -945,7 +944,7 @@ Test(addition, simple) {
   decimal a = decimal::from_string("1.5");
   decimal b = decimal::from_string("2.5");
   decimal c = a + b;
-  cr_assert_str_eq(c.to_string().c_str(), "4");
+  ASSERT_TOSTR_EQ(c, "4");
 
   cr_assert_eq(1.5 + 2.5, 4.0);
 }
@@ -954,7 +953,7 @@ Test(addition, different_exponents) {
   decimal a = decimal::from_string("1000");
   decimal b = decimal::from_string("0.001");
   decimal c = a + b;
-  cr_assert_str_eq(c.to_string().c_str(), "1000.001");
+  ASSERT_TOSTR_EQ(c, "1000.001");
 
   cr_assert_eq(1000.0 + 0.001, 1000.001);
 }
@@ -963,7 +962,7 @@ Test(addition, negative_result) {
   decimal a = decimal::from_string("3");
   decimal b = decimal::from_string("-5");
   decimal c = a + b;
-  cr_assert_str_eq(c.to_string().c_str(), "-2");
+  ASSERT_TOSTR_EQ(c, "-2");
 
   cr_assert_eq(3.0 + (-5.0), -2.0);
 }
@@ -1043,7 +1042,7 @@ Test(addition, commutative) {
 Test(subtraction, simple) {
   decimal a = decimal::from_string("10");
   decimal b = decimal::from_string("3");
-  cr_assert_str_eq((a - b).to_string().c_str(), "7");
+  ASSERT_TOSTR_EQ((a - b), "7");
 
   cr_assert_eq(10.0 - 3.0, 7.0);
 }
@@ -1051,7 +1050,7 @@ Test(subtraction, simple) {
 Test(subtraction, result_negative) {
   decimal a = decimal::from_string("3");
   decimal b = decimal::from_string("10");
-  cr_assert_str_eq((a - b).to_string().c_str(), "-7");
+  ASSERT_TOSTR_EQ((a - b), "-7");
 
   cr_assert_eq(3.0 - 10.0, -7.0);
 }
@@ -1070,7 +1069,7 @@ Test(subtraction, self_is_zero) {
 Test(multiplication, simple) {
   decimal a = decimal::from_string("6");
   decimal b = decimal::from_string("7");
-  cr_assert_str_eq((a * b).to_string().c_str(), "42");
+  ASSERT_TOSTR_EQ((a * b), "42");
 
   cr_assert_eq(6.0 * 7.0, 42.0);
 }
@@ -1078,7 +1077,7 @@ Test(multiplication, simple) {
 Test(multiplication, decimal) {
   decimal a = decimal::from_string("1.5");
   decimal b = decimal::from_string("4");
-  cr_assert_str_eq((a * b).to_string().c_str(), "6");
+  ASSERT_TOSTR_EQ((a * b), "6");
 
   cr_assert_eq(1.5 * 4.0, 6.0);
 }
@@ -1086,7 +1085,7 @@ Test(multiplication, decimal) {
 Test(multiplication, negative) {
   decimal a = decimal::from_string("-3");
   decimal b = decimal::from_string("5");
-  cr_assert_str_eq((a * b).to_string().c_str(), "-15");
+  ASSERT_TOSTR_EQ((a * b), "-15");
 
   cr_assert_eq(-3.0 * 5.0, -15.0);
 }
@@ -1094,7 +1093,7 @@ Test(multiplication, negative) {
 Test(multiplication, neg_times_neg) {
   decimal a = decimal::from_string("-3");
   decimal b = decimal::from_string("-5");
-  cr_assert_str_eq((a * b).to_string().c_str(), "15");
+  ASSERT_TOSTR_EQ((a * b), "15");
 
   cr_assert_eq(-3.0 * -5.0, 15.0);
 }
@@ -1146,7 +1145,7 @@ Test(multiplication, nan_propagates) {
 Test(division, simple) {
   decimal a = decimal::from_string("10");
   decimal b = decimal::from_string("2");
-  cr_assert_str_eq((a / b).to_string().c_str(), "5");
+  ASSERT_TOSTR_EQ((a / b), "5");
 
   cr_assert_eq(10.0 / 2.0, 5.0);
 }
@@ -1154,7 +1153,7 @@ Test(division, simple) {
 Test(division, decimal_result) {
   decimal a = decimal::from_string("1");
   decimal b = decimal::from_string("4");
-  cr_assert_str_eq((a / b).to_string().c_str(), "0.25");
+  ASSERT_TOSTR_EQ((a / b), "0.25");
 
   cr_assert_eq(1.0 / 4.0, 0.25);
 }
@@ -1162,7 +1161,7 @@ Test(division, decimal_result) {
 Test(division, negative) {
   decimal a = decimal::from_string("10");
   decimal b = decimal::from_string("-2");
-  cr_assert_str_eq((a / b).to_string().c_str(), "-5");
+  ASSERT_TOSTR_EQ((a / b), "-5");
 
   cr_assert_eq(10.0 / -2.0, -5.0);
 }
@@ -1238,7 +1237,7 @@ Test(unary, negation) {
   decimal a = decimal::from_string("5");
   decimal b = -a;
   cr_assert(b.is_negative());
-  cr_assert_str_eq(b.to_string().c_str(), "-5");
+  ASSERT_TOSTR_EQ(b, "-5");
 
   cr_assert_eq(-5.0, -(5.0));
 }
@@ -1276,7 +1275,7 @@ Test(unary, abs_positive) {
 
 Test(unary, abs_negative) {
   decimal a = decimal::from_string("-5");
-  cr_assert_str_eq(a.abs().to_string().c_str(), "5");
+  ASSERT_TOSTR_EQ(a.abs(), "5");
 
   cr_assert_eq(std::abs(-5.0), 5.0);
 }
@@ -1299,25 +1298,25 @@ Test(unary, abs_neg_zero) {
 Test(compound, plus_eq) {
   decimal a = decimal::from_string("10");
   a += decimal::from_string("5");
-  cr_assert_str_eq(a.to_string().c_str(), "15");
+  ASSERT_TOSTR_EQ(a, "15");
 }
 
 Test(compound, minus_eq) {
   decimal a = decimal::from_string("10");
   a -= decimal::from_string("3");
-  cr_assert_str_eq(a.to_string().c_str(), "7");
+  ASSERT_TOSTR_EQ(a, "7");
 }
 
 Test(compound, times_eq) {
   decimal a = decimal::from_string("6");
   a *= decimal::from_string("7");
-  cr_assert_str_eq(a.to_string().c_str(), "42");
+  ASSERT_TOSTR_EQ(a, "42");
 }
 
 Test(compound, div_eq) {
   decimal a = decimal::from_string("10");
   a /= decimal::from_string("4");
-  cr_assert_str_eq(a.to_string().c_str(), "2.5");
+  ASSERT_TOSTR_EQ(a, "2.5");
 }
 
 // ---------------------------------------------------------------------------
@@ -1491,7 +1490,7 @@ Test(extended_range, add_large) {
   decimal a = decimal::from_string("5e3000");
   decimal b = decimal::from_string("3e3000");
   decimal c = a + b;
-  cr_assert_str_eq(c.to_string().c_str(), "8e3000");
+  ASSERT_TOSTR_EQ(c, "8e3000");
 }
 
 Test(extended_range, exponent_well_beyond_double) {
@@ -1566,7 +1565,7 @@ Test(arithmetic_edge, div_by_one) {
 Test(arithmetic_edge, div_one_by_self) {
   decimal a = decimal::from_string("7");
   decimal c = a / a;
-  cr_assert_str_eq(c.to_string().c_str(), "1");
+  ASSERT_TOSTR_EQ(c, "1");
 
   cr_assert_eq(7.0 / 7.0, 1.0);
 }
@@ -1594,7 +1593,7 @@ Test(arithmetic_edge, large_mantissa_mul) {
 Test(from_string_std, basic) {
   std::string s = "42.5";
   decimal d = decimal::from_string(s);
-  cr_assert_str_eq(d.to_string().c_str(), "42.5");
+  ASSERT_TOSTR_EQ(d, "42.5");
 }
 
 // ---------------------------------------------------------------------------
@@ -1915,11 +1914,11 @@ Test(operator_uint64, special_values) {
 
 Test(mul_pow10, basic) {
   decimal d = decimal::from_string("1.5");
-  cr_assert_str_eq(d.mul_pow10(0).to_string().c_str(), "1.5");
-  cr_assert_str_eq(d.mul_pow10(1).to_string().c_str(), "15");
-  cr_assert_str_eq(d.mul_pow10(2).to_string().c_str(), "150");
-  cr_assert_str_eq(d.mul_pow10(-1).to_string().c_str(), "0.15");
-  cr_assert_str_eq(d.mul_pow10(-3).to_string().c_str(), "0.0015");
+  ASSERT_TOSTR_EQ(d.mul_pow10(0), "1.5");
+  ASSERT_TOSTR_EQ(d.mul_pow10(1), "15");
+  ASSERT_TOSTR_EQ(d.mul_pow10(2), "150");
+  ASSERT_TOSTR_EQ(d.mul_pow10(-1), "0.15");
+  ASSERT_TOSTR_EQ(d.mul_pow10(-3), "0.0015");
 }
 
 Test(mul_pow10, preserves_mantissa) {
@@ -1959,11 +1958,11 @@ Test(mul_pow10, extreme_p) {
 // ---------------------------------------------------------------------------
 
 Test(pow10, basic) {
-  cr_assert_str_eq(decimal::pow10(0).to_string().c_str(), "1");
-  cr_assert_str_eq(decimal::pow10(1).to_string().c_str(), "10");
-  cr_assert_str_eq(decimal::pow10(2).to_string().c_str(), "100");
-  cr_assert_str_eq(decimal::pow10(-1).to_string().c_str(), "0.1");
-  cr_assert_str_eq(decimal::pow10(-3).to_string().c_str(), "0.001");
+  ASSERT_TOSTR_EQ(decimal::pow10(0), "1");
+  ASSERT_TOSTR_EQ(decimal::pow10(1), "10");
+  ASSERT_TOSTR_EQ(decimal::pow10(2), "100");
+  ASSERT_TOSTR_EQ(decimal::pow10(-1), "0.1");
+  ASSERT_TOSTR_EQ(decimal::pow10(-3), "0.001");
   std::string s = decimal::pow10(18).to_string();
   cr_assert_str_eq(s.c_str(), "1000000000000000000");
 }
@@ -2168,14 +2167,14 @@ Test(flip_sign, positive_to_negative) {
   decimal d = decimal::from_string("5");
   d.flip_sign();
   cr_assert(d.is_negative());
-  cr_assert_str_eq(d.to_string().c_str(), "-5");
+  ASSERT_TOSTR_EQ(d, "-5");
 }
 
 Test(flip_sign, negative_to_positive) {
   decimal d = decimal::from_string("-5");
   d.flip_sign();
   cr_assert(!d.is_negative());
-  cr_assert_str_eq(d.to_string().c_str(), "5");
+  ASSERT_TOSTR_EQ(d, "5");
 }
 
 Test(flip_sign, double_flip_is_identity) {
@@ -2516,14 +2515,14 @@ Test(addition, smaller_exponent_first) {
   // "0.001" exp=-21, "1000" exp=-15: ea < eb, so add_abs swaps them.
   decimal a = decimal::from_string("0.001");
   decimal b = decimal::from_string("1000");
-  cr_assert_str_eq((a + b).to_string().c_str(), "1000.001");
+  ASSERT_TOSTR_EQ((a + b), "1000.001");
 
   // Same result regardless of order (commutativity already tested, but this
   // specifically exercises the swap branch).
-  cr_assert_str_eq((b + a).to_string().c_str(), "1000.001");
+  ASSERT_TOSTR_EQ((b + a), "1000.001");
 
   // Negative operands — same sign, so add_abs is called; swap still fires.
-  cr_assert_str_eq((-a + -b).to_string().c_str(), "-1000.001");
+  ASSERT_TOSTR_EQ((-a + -b), "-1000.001");
 }
 
 // ---------------------------------------------------------------------------
@@ -2540,7 +2539,7 @@ Test(addition, different_sign_lhs_larger_exponent) {
   // bea=-15 > beb=-18 → sub_magnitudes(1000, 5, POSITIVE) → 995.
   decimal a = decimal::from_string("1000");
   decimal b = decimal::from_string("-5");
-  cr_assert_str_eq((a + b).to_string().c_str(), "995");
+  ASSERT_TOSTR_EQ((a + b), "995");
 
   cr_assert_eq(1000.0 + (-5.0), 995.0);
 }
@@ -2558,7 +2557,7 @@ Test(addition, different_sign_lhs_larger_mantissa) {
   // bea==beb==-18, ma=5e18 > mb=3e18 → sub_magnitudes(5, 3, POSITIVE) → 2.
   decimal a = decimal::from_string("5");
   decimal b = decimal::from_string("-3");
-  cr_assert_str_eq((a + b).to_string().c_str(), "2");
+  ASSERT_TOSTR_EQ((a + b), "2");
 
   cr_assert_eq(5.0 + (-3.0), 2.0);
 }
@@ -2575,11 +2574,11 @@ Test(addition, different_sign_lhs_larger_mantissa) {
 Test(addition, huge_exponent_diff_same_sign) {
   decimal a = decimal::from_string("1e20");
   decimal b = decimal::from_string("1");
-  cr_assert_str_eq((a + b).to_string().c_str(), "1e20");
+  ASSERT_TOSTR_EQ((a + b), "1e20");
 
   // Reverse order exercises the internal swap (ea < eb path) before the
   // diff >= 20 early return.
-  cr_assert_str_eq((b + a).to_string().c_str(), "1e20");
+  ASSERT_TOSTR_EQ((b + a), "1e20");
 }
 
 // ---------------------------------------------------------------------------
@@ -2593,7 +2592,7 @@ Test(addition, huge_exponent_diff_same_sign) {
 Test(addition, huge_exponent_diff_different_sign) {
   decimal a = decimal::from_string("1e20");
   decimal b = decimal::from_string("-1");
-  cr_assert_str_eq((a + b).to_string().c_str(), "1e20");
+  ASSERT_TOSTR_EQ((a + b), "1e20");
 }
 
 // ---------------------------------------------------------------------------
@@ -3205,13 +3204,9 @@ Test(bug_investigation, division_exact_midpoint_rounding) {
 
 Test(bug_investigation, parse_mantissa_exact_19_digits_at_nul) {
   // Exactly 19 digits, no dot, no exponent, no trailing chars
-  cr_assert_str_eq(
-    decimal::from_string("1000000000000000001").to_string().c_str(),
-    "1000000000000000001");
+  ASSERT_TOSTR_EQ(decimal::from_string("1000000000000000001"), "1000000000000000001");
   // 20 digits: the 20th digit triggers rounding, then hits NUL
-  cr_assert_str_eq(
-    decimal::from_string("10000000000000000015").to_string().c_str(),
-    "10000000000000000020");
+  ASSERT_TOSTR_EQ(decimal::from_string("10000000000000000015"), "10000000000000000020");
 }
 
 // ---------------------------------------------------------------------------
